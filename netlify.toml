@@ -1,0 +1,54 @@
+# Build settings
+[build]
+  publish = "."
+  command = ""
+
+# Redirects for category pages
+[[redirects]]
+  from = "/category/:category"
+  to = "/category.html?cat=:category"
+  status = 200
+
+# Redirects for article pages
+[[redirects]]
+  from = "/article/:slug"
+  to = "/article.html?slug=:slug"
+  status = 200
+
+# Redirects for search
+[[redirects]]
+  from = "/search"
+  to = "/search.html?q=:splat"
+  status = 200
+
+# Redirects for admin
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+# 🚀 Prerender rule (must come BEFORE catch-all)
+[[redirects]]
+  from = "/*"
+  to = "https://service.prerender.io/:splat"
+  status = 200
+  force = true
+  conditions = { User-Agent = [
+    "Twitterbot",
+    "facebookexternalhit",
+    "WhatsApp",
+    "Googlebot",
+    "bingbot",
+    "LinkedInBot",
+    "Slackbot",
+    "TelegramBot",
+    "Discordbot",
+    "Applebot"
+  ] }
+  headers = { "X-Prerender-Token" = "${PRERENDER_TOKEN}" }
+
+# Catch-all for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
