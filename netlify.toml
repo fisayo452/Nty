@@ -9,12 +9,6 @@
   to = "/category.html?cat=:category"
   status = 200
 
-# Redirects for article pages
-[[redirects]]
-  from = "/article/:slug"
-  to = "/article.html?slug=:slug"
-  status = 200
-
 # Redirects for search
 [[redirects]]
   from = "/search"
@@ -27,7 +21,14 @@
   to = "/admin.html"
   status = 200
 
-# 🚀 Prerender rule (must come BEFORE catch-all)
+# Redirects for article pages (clean URLs)
+[[redirects]]
+  from = "/*"
+  to = "/article.html"
+  status = 200
+  conditions = { Path = ["/:slug"] } # Matches any path without a file extension (e.g., /my-slug)
+
+# Prerender rule for social media bots
 [[redirects]]
   from = "/*"
   to = "https://service.prerender.io/:splat"
@@ -47,7 +48,7 @@
   ] }
   headers = { "X-Prerender-Token" = "${PRERENDER_TOKEN}" }
 
-# Catch-all for SPA routing
+# Catch-all for SPA routing (fallback to index.html)
 [[redirects]]
   from = "/*"
   to = "/index.html"
