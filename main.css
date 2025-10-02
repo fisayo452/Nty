@@ -4548,32 +4548,3 @@ main h3 {
 .article-card[data-preview="true"] .comment-section {
     display: none;
 }
-#search-results .loading {
-  text-align: center;
-  padding: 20px;
-  color: #555;
-  font-style: italic;
-}
-#search-results .loading::before {
-  content: '';
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
-  border: 2px solid #ccc;
-  border-top-color: #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-#article-image {
-  width: 100vw !important;
-  max-width: 100vw !important;
-  margin-left: calc(-50vw + 50%);
-  position: relative;
-  left: 50%;
-  right: 50%;
-  display: block;
-}
