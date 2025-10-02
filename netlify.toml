@@ -1,34 +1,28 @@
-# Build settings
-[build]
-  publish = "."
-  command = ""
+# Clean article slugs routed to article.html
+[[redirects]]
+  from = "/:slug"
+  to = "/article.html?slug=:slug"
+  status = 200
 
-# Redirects for category pages
+# Category
 [[redirects]]
   from = "/category/:category"
   to = "/category.html?cat=:category"
   status = 200
 
-# Redirects for search
+# Search
 [[redirects]]
   from = "/search"
   to = "/search.html?q=:splat"
   status = 200
 
-# Redirects for admin
+# Admin
 [[redirects]]
   from = "/admin"
   to = "/admin.html"
   status = 200
 
-# Redirects for article pages (clean URLs)
-[[redirects]]
-  from = "/*"
-  to = "/article.html"
-  status = 200
-  conditions = { Path = ["/:slug"] } # Matches any path without a file extension (e.g., /my-slug)
-
-# Prerender rule for social media bots
+# Prerender for bots (leave as-is if you use prerender.io)
 [[redirects]]
   from = "/*"
   to = "https://service.prerender.io/:splat"
@@ -48,7 +42,7 @@
   ] }
   headers = { "X-Prerender-Token" = "${PRERENDER_TOKEN}" }
 
-# Catch-all for SPA routing (fallback to index.html)
+# SPA Fallback (keep this last!)
 [[redirects]]
   from = "/*"
   to = "/index.html"
