@@ -6,10 +6,13 @@
   <meta name="description" content="Naija Truths - Read the latest news article">
   <meta name="keywords" content="Naija Truths, Nigeria News, Article">
   <meta name="author" content="Naija Truths Team">
-  <meta property="og:title" content="Naija Truths - Article">
-  <meta property="og:description" content="Read the latest news article on Naija Truths.">
-  <meta property="og:image" content="https://res.cloudinary.com/dutxozfx7/image/upload/v1758308085/IMG-20250910-WA0114_kcrdge.jpg">">
-  <meta property="og:url" content="https://naija-truths.netlify.app/article.html">
+  <meta property="og:title" content="" id="og-title">
+  <meta property="og:description" content="" id="og-description">
+  <meta property="og:image" content="" id="og-image">
+  <meta property="og:url" content="" id="og-url">
+  <meta name="twitter:title" content="" id="twitter-title">
+  <meta name="twitter:description" content="" id="twitter-description">
+  <meta name="twitter:image" content="" id="twitter-image">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@NaijaTruths">
   <title>Naija Truths - Article</title>
@@ -31,6 +34,17 @@
   </script>
   <script type="module" src="main.js"></script>
   <script type="module" src="ads.js"></script>
+  <script>
+    function setArticleMeta({ title, description, image, url }) {
+      document.getElementById('og-title').setAttribute('content', title || '');
+      document.getElementById('og-description').setAttribute('content', description || '');
+      document.getElementById('og-image').setAttribute('content', image || '');
+      document.getElementById('og-url').setAttribute('content', url || window.location.href);
+      document.getElementById('twitter-title').setAttribute('content', title || '');
+      document.getElementById('twitter-description').setAttribute('content', description || '');
+      document.getElementById('twitter-image').setAttribute('content', image || '');
+    }
+  </script>
 </head>
 <body>
   <div id="preloader">
@@ -123,7 +137,6 @@
     <main>
       <section id="top-ad-section" class="ad-container">
         <div id="top-ad" role="complementary" aria-label="Advertisement" tabindex="0">
-          <!-- Populated dynamically by ads.js -->
         </div>
       </section>
       <section id="article-title-section">
@@ -205,7 +218,6 @@
       </section>
       <section id="middle-ad-section" class="ad-container">
         <div id="middle-ad" role="complementary" aria-label="Advertisement" tabindex="0">
-          <!-- Populated dynamically by ads.js -->
         </div>
       </section>
     </main>

@@ -460,11 +460,15 @@ async function loadArticles() {
     if (!snapshot.empty) {
       const article = snapshot.docs[0].data();
       const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/1200x630';
-      console.log('Breaking news meta image:', imageUrl);
-      document.querySelector('meta[property="og:title"]').setAttribute('content', `Naija Truths - ${article.title || 'Breaking News'}`);
+      const url = window.location.href;
+      document.getElementById('og-title').setAttribute('content', `Naija Truths - ${article.title || 'Breaking News'}`);
+      document.getElementById('og-description').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Breaking news from Naija Truths'));
+      document.getElementById('og-image').setAttribute('content', imageUrl);
+      document.getElementById('og-url').setAttribute('content', url);
+      document.getElementById('twitter-title').setAttribute('content', `Naija Truths - ${article.title || 'Breaking News'}`);
+      document.getElementById('twitter-description').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Breaking news from Naija Truths'));
+      document.getElementById('twitter-image').setAttribute('content', imageUrl);
       document.querySelector('meta[name="description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Breaking news from Naija Truths'));
-      document.querySelector('meta[property="og:description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Breaking news from Naija Truths'));
-      document.querySelector('meta[property="og:image"]').setAttribute('content', imageUrl);
       document.title = `Naija Truths - ${article.title || 'Breaking News'}`;
     }
   } catch (error) {
@@ -518,11 +522,16 @@ async function loadArticle() {
       }
 
       articleTitle.textContent = article.title || 'Untitled Article';
-      document.querySelector('meta[property="og:title"]').setAttribute('content', article.title || 'Naija Truths Article');
-      document.querySelector('meta[name="description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
-      document.querySelector('meta[property="og:description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
       const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/1200x630';
-      document.querySelector('meta[property="og:image"]').setAttribute('content', imageUrl);
+      const url = window.location.href;
+      document.getElementById('og-title').setAttribute('content', article.title || 'Naija Truths Article');
+      document.getElementById('og-description').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
+      document.getElementById('og-image').setAttribute('content', imageUrl);
+      document.getElementById('og-url').setAttribute('content', url);
+      document.getElementById('twitter-title').setAttribute('content', article.title || 'Naija Truths Article');
+      document.getElementById('twitter-description').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
+      document.getElementById('twitter-image').setAttribute('content', imageUrl);
+      document.querySelector('meta[name="description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
       document.title = `Naija Truths - ${article.title || 'Article'}`;
 
       if (articleImage) {
@@ -1321,7 +1330,6 @@ async function loadSearchResults() {
     displayErrorMessage('#search-results', 'Failed to load search results. Please try again.');
   }
 }
-
 async function loadAdminArticles() {
   const articleList = document.getElementById('article-list');
   if (!db || !articleList) return;
