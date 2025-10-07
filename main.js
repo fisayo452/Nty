@@ -330,7 +330,7 @@ async function loadArticles() {
                 console.log(`Fallback image loaded successfully for article ID: ${docId}, URL: ${img.src}`);
                 img.style.display = 'block';
               };
-              link.setAttribute('href', `/${article.slug}`);
+              link.setAttribute('href', `article.html?id=${docId}`);
               link.querySelector('h2, h3').textContent = article.title || 'Untitled Article';
               link.querySelector('p').textContent = article.summary || (article.content ? article.content.substring(0, 100) + '...' : 'No summary available');
               const timeElement = link.querySelector('.article-time') || document.createElement('p');
@@ -390,7 +390,7 @@ async function loadArticles() {
             console.log(`Image loaded successfully for article ID: ${doc.id}, URL: ${img.src}`);
             img.style.display = 'block';
           };
-          link.setAttribute('href', `/${article.slug}`);
+          link.setAttribute('href', `article.html?id=${doc.id}`);
           link.querySelector('h2, h3').textContent = article.title || 'Untitled Article';
           link.querySelector('p').textContent = article.summary || (article.content ? article.content.substring(0, 100) + '...' : 'No summary available');
           const timeElement = link.querySelector('.article-time') || document.createElement('p');
@@ -460,15 +460,11 @@ async function loadArticles() {
     if (!snapshot.empty) {
       const article = snapshot.docs[0].data();
       const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/1200x630';
-      const url = window.location.href;
-      document.getElementById('og-title').setAttribute('content', `Naija Truths - ${article.title || 'Breaking News'}`);
-      document.getElementById('og-description').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Breaking news from Naija Truths'));
-      document.getElementById('og-image').setAttribute('content', imageUrl);
-      document.getElementById('og-url').setAttribute('content', url);
-      document.getElementById('twitter-title').setAttribute('content', `Naija Truths - ${article.title || 'Breaking News'}`);
-      document.getElementById('twitter-description').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Breaking news from Naija Truths'));
-      document.getElementById('twitter-image').setAttribute('content', imageUrl);
+      console.log('Breaking news meta image:', imageUrl);
+      document.querySelector('meta[property="og:title"]').setAttribute('content', `Naija Truths - ${article.title || 'Breaking News'}`);
       document.querySelector('meta[name="description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Breaking news from Naija Truths'));
+      document.querySelector('meta[property="og:description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Breaking news from Naija Truths'));
+      document.querySelector('meta[property="og:image"]').setAttribute('content', imageUrl);
       document.title = `Naija Truths - ${article.title || 'Breaking News'}`;
     }
   } catch (error) {
@@ -477,26 +473,25 @@ async function loadArticles() {
 }
 
 async function loadArticle() {
-  const slug = decodeURIComponent(window.location.pathname.substring(1));
-  console.log('Attempting to load article with slug:', slug);
+  const urlParams = new URLSearchParams(window.location.search);
+  const articleId = urlParams.get('id');
+  console.log('Attempting to load article with ID:', articleId);
   if (!db) {
     console.error('Database not initialized');
     displayErrorMessage('#article-content', 'Unable to load article: Database not initialized. Please check your Firebase configuration or internet connection.');
     return;
   }
-  if (!slug) {
-    console.error('No slug provided in URL');
-    displayErrorMessage('#article-content', 'No article slug provided in the URL. Please select an article from the homepage or check the link.');
+  if (!articleId) {
+    console.error('No article ID provided in URL');
+    displayErrorMessage('#article-content', 'No article ID provided in the URL. Please select an article from the homepage or check the link.');
     return;
   }
 
-  const q = query(collection(db, 'articles'), where('slug', '==', slug), limit(1));
+  const docRef = doc(db, 'articles', articleId);
   try {
-    const querySnapshot = await withRetry(() => getDocs(q));
-    if (!querySnapshot.empty) {
-      const docSnap = querySnapshot.docs[0];
+    const docSnap = await withRetry(() => getDoc(docRef));
+    if (docSnap.exists()) {
       const article = docSnap.data();
-      const articleId = docSnap.id;
       console.log('Article loaded successfully:', article.title, 'Verified:', article.verified, 'Breaking News:', article.breakingNews, 'Image:', article.image);
 
       const articleTitle = document.getElementById('article-title');
@@ -522,16 +517,11 @@ async function loadArticle() {
       }
 
       articleTitle.textContent = article.title || 'Untitled Article';
-      const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/1200x630';
-      const url = window.location.href;
-      document.getElementById('og-title').setAttribute('content', article.title || 'Naija Truths Article');
-      document.getElementById('og-description').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
-      document.getElementById('og-image').setAttribute('content', imageUrl);
-      document.getElementById('og-url').setAttribute('content', url);
-      document.getElementById('twitter-title').setAttribute('content', article.title || 'Naija Truths Article');
-      document.getElementById('twitter-description').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
-      document.getElementById('twitter-image').setAttribute('content', imageUrl);
+      document.querySelector('meta[property="og:title"]').setAttribute('content', article.title || 'Naija Truths Article');
       document.querySelector('meta[name="description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
+      document.querySelector('meta[property="og:description"]').setAttribute('content', article.summary || (article.content ? article.content.substring(0, 160) : 'Article from Naija Truths'));
+      const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/1200x630';
+      document.querySelector('meta[property="og:image"]').setAttribute('content', imageUrl);
       document.title = `Naija Truths - ${article.title || 'Article'}`;
 
       if (articleImage) {
@@ -613,15 +603,15 @@ async function loadArticle() {
         }
       }
 
-      await withRetry(() => updateDoc(doc(db, 'articles', articleId), { views: increment(1) }));
+      await withRetry(() => updateDoc(docRef, { views: increment(1) }));
       loadComments(articleId);
     } else {
-      console.error('Article not found in Firestore for slug:', slug);
-      displayErrorMessage('#article-content', `Article not found (Slug: ${slug}). It may have been deleted or the slug is incorrect.`);
+      console.error('Article not found in Firestore for ID:', articleId);
+      displayErrorMessage('#article-content', `Article not found (ID: ${articleId}). It may have been deleted or the ID is incorrect.`);
     }
   } catch (error) {
-    console.error('Error loading article (Slug:', slug, '):', error.message, error.code);
-    let errorMessage = `Failed to load article (Slug: ${slug}): ${error.message}. `;
+    console.error('Error loading article (ID:', articleId, '):', error.message, error.code);
+    let errorMessage = `Failed to load article (ID: ${articleId}): ${error.message}. `;
     if (error.code === 'permission-denied') {
       errorMessage += 'Check Firestore security rules to ensure public read access to the "articles" collection.';
     } else if (error.code === 'unavailable' || error.code === 'deadline-exceeded') {
@@ -775,7 +765,7 @@ async function fetchCategoryArticles(category, reset = false) {
       const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/400x200';
       console.log(`Rendering article ID: ${doc.id}, Title: ${article.title}, Image URL: ${imageUrl}`);
       articleElement.innerHTML = `
-        <a href="/${article.slug}" class="article-link">
+        <a href="article.html?id=${doc.id}" class="article-link">
           <img src="${imageUrl}" 
                srcset="${imageUrl} 400w, ${imageUrl} 200w, ${imageUrl} 800w" 
                sizes="(max-width: 480px) 100vw, (max-width: 767px) 80vw, 400px" 
@@ -926,6 +916,7 @@ document.querySelectorAll('.article-card .like-button, #category-articles .news-
     }
   });
 });
+
 document.querySelectorAll('.comment-submit').forEach(button => {
   button.addEventListener('click', async (e) => {
     e.preventDefault();
@@ -1032,7 +1023,7 @@ async function fetchPoliticsArticles(reset = false) {
       const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/400x200';
       console.log(`Politics article ID: ${doc.id}, Image URL: ${imageUrl}`);
       articleElement.innerHTML = `
-        <a href="/${article.slug}" class="article-link">
+        <a href="article.html?id=${doc.id}" class="article-link">
           <img src="${imageUrl}" 
                srcset="${imageUrl} 400w, ${imageUrl} 200w, ${imageUrl} 800w" 
                sizes="(max-width: 480px) 100vw, (max-width: 767px) 80vw, 400px" 
@@ -1148,7 +1139,7 @@ async function fetchLatestNewsArticles(reset = false, loadMoreButton, category =
       const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/400x200';
       console.log(`Rendering latest news article ID: ${doc.id}, Title: ${article.title}, Image URL: ${imageUrl}`);
       articleElement.innerHTML = `
-        <a href="/${article.slug}" class="article-link">
+        <a href="article.html?id=${doc.id}" class="article-link">
           <img src="${imageUrl}" 
                srcset="${imageUrl} 400w, ${imageUrl} 200w, ${imageUrl} 800w" 
                sizes="(max-width: 480px) 100vw, (max-width: 767px) 80vw, 400px" 
@@ -1308,7 +1299,7 @@ async function loadSearchResults() {
       articleElement.dataset.id = doc.id;
       const imageUrl = article.image && isValidUrl(article.image) ? article.image : 'https://via.placeholder.com/400x200';
       articleElement.innerHTML = `
-        <a href="/${article.slug}" class="article-link">
+        <a href="article.html?id=${doc.id}" class="article-link">
           <img src="${imageUrl}" 
                srcset="${imageUrl} 400w, ${imageUrl} 200w, ${imageUrl} 800w" 
                sizes="(max-width: 480px) 100vw, (max-width: 767px) 80vw, 400px" 
@@ -1328,211 +1319,6 @@ async function loadSearchResults() {
   } catch (error) {
     console.error('Error loading search results:', error.message);
     displayErrorMessage('#search-results', 'Failed to load search results. Please try again.');
-  }
-}
-async function loadAdminArticles() {
-  const articleList = document.getElementById('article-list');
-  if (!db || !articleList) return;
-  try {
-    const snapshot = await withRetry(() => getDocs(query(collection(db, 'articles'), orderBy('createdAt', 'desc'))));
-    articleList.innerHTML = '';
-    if (snapshot.empty) {
-      articleList.innerHTML = '<p>No articles found.</p>';
-      return;
-    }
-    snapshot.forEach(doc => {
-      const article = doc.data();
-      const articleElement = document.createElement('div');
-      articleElement.classList.add('news-card');
-      articleElement.innerHTML = `
-        <h3>${article.title || 'Untitled Article'}</h3>
-        <p class="article-writer">By ${article.writer || 'Anonymous'}</p>
-        <p>${article.summary || 'No summary available'}</p>
-        <p>${article.category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' & ')}</p>
-        <p class="article-time">Posted: ${formatTimestamp(article.createdAt)}</p>
-        ${article.breakingNews ? '<span class="breaking-news-badge">Breaking News</span>' : ''}
-        ${article.verified ? '<span class="verified-badge">Verified</span>' : ''}
-        <button class="edit-button ripple-btn" data-id="${doc.id}">Edit</button>
-        <button class="delete-button ripple-btn" data-id="${doc.id}">Delete</button>
-      `;
-      articleList.appendChild(articleElement);
-    });
-    document.querySelectorAll('.edit-button').forEach(button => {
-      button.addEventListener('click', async () => {
-        const articleId = button.dataset.id;
-        const docRef = doc(db, 'articles', articleId);
-        try {
-          const docSnap = await withRetry(() => getDoc(docRef));
-          const article = docSnap.data();
-          document.getElementById('article-id').value = articleId;
-          document.getElementById('article-title-input').value = article.title || '';
-          document.getElementById('article-writer-input').value = article.writer || '';
-          document.getElementById('article-summary-input').value = article.summary || '';
-          if (quill) {
-            quill.root.innerHTML = article.content || '';
-          } else {
-            document.getElementById('article-content-input').value = article.content || '';
-          }
-          document.getElementById('article-image-input').value = article.image || '';
-          document.getElementById('article-video-input').value = article.video || '';
-          document.getElementById('article-category-input').value = article.category || '';
-          document.getElementById('article-breaking-news-input').checked = !!article.breakingNews;
-          document.getElementById('article-verified-input').checked = !!article.verified;
-        } catch (error) {
-          console.error('Error loading article for editing:', error.message);
-          displayErrorMessage('#article-list', 'Failed to load article for editing. Please try again.');
-        }
-      });
-    });
-    document.querySelectorAll('.delete-button').forEach(button => {
-      button.addEventListener('click', () => {
-        const articleId = button.dataset.id;
-        deleteArticle(articleId);
-      });
-    });
-  } catch (error) {
-    console.error('Error loading admin articles:', error.message);
-    displayErrorMessage('#article-list', 'Failed to load articles. Please try again.');
-  }
-}
-
-async function searchAdminArticles() {
-  const searchInput = document.getElementById('article-search-input').value.trim();
-  const articleList = document.getElementById('article-list');
-  if (!db || !articleList) {
-    displayErrorMessage('#article-list', 'Database or article list not initialized. Please refresh the page.');
-    return;
-  }
-
-  articleList.innerHTML = '<p>Loading articles...</p>';
-
-  try {
-    let snapshot;
-    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-    
-    if (!searchInput) {
-      const q = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(50));
-      snapshot = await withRetry(() => getDocs(q));
-    } else if (datePattern.test(searchInput)) {
-      const startDate = new Date(searchInput + 'T00:00:00Z');
-      if (isNaN(startDate.getTime())) {
-        articleList.innerHTML = '';
-        displayErrorMessage('#article-list', 'Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-18).');
-        return;
-      }
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 1);
-      const q = query(
-        collection(db, 'articles'),
-        where('createdAt', '>=', startDate),
-        where('createdAt', '<', endDate),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-      );
-      snapshot = await withRetry(() => getDocs(q));
-    } else {
-      const titleQuery = query(
-        collection(db, 'articles'),
-        where('title_lowercase', '>=', searchInput.toLowerCase()),
-        where('title_lowercase', '<=', searchInput.toLowerCase() + '\uf8ff'),
-        orderBy('title_lowercase'),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-      );
-      const writerQuery = query(
-        collection(db, 'articles'),
-        where('writer', '>=', searchInput),
-        where('writer', '<=', searchInput + '\uf8ff'),
-        orderBy('writer'),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-      );
-      
-      const [titleSnapshot, writerSnapshot] = await Promise.all([
-        withRetry(() => getDocs(titleQuery)),
-        withRetry(() => getDocs(writerQuery))
-      ]);
-      
-      const articles = new Map();
-      titleSnapshot.forEach(doc => articles.set(doc.id, doc));
-      writerSnapshot.forEach(doc => articles.set(doc.id, doc));
-      snapshot = {
-        docs: Array.from(articles.values()),
-        empty: articles.size === 0
-      };
-    }
-
-    articleList.innerHTML = '';
-    if (snapshot.empty) {
-      articleList.innerHTML = '<p>No articles found for the given search.</p>';
-      return;
-    }
-
-    snapshot.docs.forEach(doc => {
-      const article = doc.data();
-      const articleElement = document.createElement('div');
-      articleElement.classList.add('news-card');
-      articleElement.innerHTML = `
-        <h3>${article.title || 'Untitled Article'}</h3>
-        <p class="article-writer">By ${article.writer || 'Anonymous'}</p>
-        <p>${article.summary || 'No summary available'}</p>
-        <p>${article.category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' & ')}</p>
-        <p class="article-time">Posted: ${formatTimestamp(article.createdAt)}</p>
-        ${article.breakingNews ? '<span class="breaking-news-badge">Breaking News</span>' : ''}
-        ${article.verified ? '<span class="verified-badge">Verified</span>' : ''}
-        <button class="edit-button ripple-btn" data-id="${doc.id}">Edit</button>
-        <button class="delete-button ripple-btn" data-id="${doc.id}">Delete</button>
-      `;
-      articleList.appendChild(articleElement);
-    });
-
-    document.querySelectorAll('.edit-button').forEach(button => {
-      button.addEventListener('click', async () => {
-        const articleId = button.dataset.id;
-        const docRef = doc(db, 'articles', articleId);
-        try {
-          const docSnap = await withRetry(() => getDoc(docRef));
-          const article = docSnap.data();
-          document.getElementById('article-id').value = articleId;
-          document.getElementById('article-title-input').value = article.title || '';
-          document.getElementById('article-writer-input').value = article.writer || '';
-          document.getElementById('article-summary-input').value = article.summary || '';
-          if (quill) {
-            quill.root.innerHTML = article.content || '';
-          } else {
-            document.getElementById('article-content-input').value = article.content || '';
-          }
-          document.getElementById('article-image-input').value = article.image || '';
-          document.getElementById('article-video-input').value = article.video || '';
-          document.getElementById('article-category-input').value = article.category || '';
-          document.getElementById('article-breaking-news-input').checked = !!article.breakingNews;
-          document.getElementById('article-verified-input').checked = !!article.verified;
-        } catch (error) {
-          console.error('Error loading article for editing:', error.message);
-          displayErrorMessage('#article-list', 'Failed to load article for editing. Please try again.');
-        }
-      });
-    });
-    document.querySelectorAll('.delete-button').forEach(button => {
-      button.addEventListener('click', () => {
-        const articleId = button.dataset.id;
-        deleteArticle(articleId);
-      });
-    });
-  } catch (error) {
-    console.error('Error searching admin articles:', error.message, error.code);
-    let errorMessage = 'Failed to load articles: ' + error.message + '. ';
-    if (error.code === 'permission-denied') {
-      errorMessage += 'Check Firestore security rules to ensure admin read access to the "articles" collection.';
-    } else if (error.code === 'unavailable' || error.code === 'deadline-exceeded') {
-      errorMessage += 'Network issue detected. Check your internet connection and try again.';
-    } else if (error.code === 'invalid-argument') {
-      errorMessage += 'Invalid search query. Ensure the date is in YYYY-MM-DD format or check the title/writer input.';
-    } else {
-      errorMessage += 'Please verify the search query or try refreshing the page.';
-    }
-    articleList.innerHTML = '';
-    displayErrorMessage('#article-list', errorMessage);
   }
 }
 
@@ -1740,6 +1526,212 @@ async function deleteArticle(articleId) {
   }
 }
 
+async function loadAdminArticles() {
+  const articleList = document.getElementById('article-list');
+  if (!db || !articleList) return;
+  try {
+    const snapshot = await withRetry(() => getDocs(query(collection(db, 'articles'), orderBy('createdAt', 'desc'))));
+    articleList.innerHTML = '';
+    if (snapshot.empty) {
+      articleList.innerHTML = '<p>No articles found.</p>';
+      return;
+    }
+    snapshot.forEach(doc => {
+      const article = doc.data();
+      const articleElement = document.createElement('div');
+      articleElement.classList.add('news-card');
+      articleElement.innerHTML = `
+        <h3>${article.title || 'Untitled Article'}</h3>
+        <p class="article-writer">By ${article.writer || 'Anonymous'}</p>
+        <p>${article.summary || 'No summary available'}</p>
+        <p>${article.category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' & ')}</p>
+        <p class="article-time">Posted: ${formatTimestamp(article.createdAt)}</p>
+        ${article.breakingNews ? '<span class="breaking-news-badge">Breaking News</span>' : ''}
+        ${article.verified ? '<span class="verified-badge">Verified</span>' : ''}
+        <button class="edit-button ripple-btn" data-id="${doc.id}">Edit</button>
+        <button class="delete-button ripple-btn" data-id="${doc.id}">Delete</button>
+      `;
+      articleList.appendChild(articleElement);
+    });
+    document.querySelectorAll('.edit-button').forEach(button => {
+      button.addEventListener('click', async () => {
+        const articleId = button.dataset.id;
+        const docRef = doc(db, 'articles', articleId);
+        try {
+          const docSnap = await withRetry(() => getDoc(docRef));
+          const article = docSnap.data();
+          document.getElementById('article-id').value = articleId;
+          document.getElementById('article-title-input').value = article.title || '';
+          document.getElementById('article-writer-input').value = article.writer || '';
+          document.getElementById('article-summary-input').value = article.summary || '';
+          if (quill) {
+            quill.root.innerHTML = article.content || '';
+          } else {
+            document.getElementById('article-content-input').value = article.content || '';
+          }
+          document.getElementById('article-image-input').value = article.image || '';
+          document.getElementById('article-video-input').value = article.video || '';
+          document.getElementById('article-category-input').value = article.category || '';
+          document.getElementById('article-breaking-news-input').checked = !!article.breakingNews;
+          document.getElementById('article-verified-input').checked = !!article.verified;
+        } catch (error) {
+          console.error('Error loading article for editing:', error.message);
+          displayErrorMessage('#article-list', 'Failed to load article for editing. Please try again.');
+        }
+      });
+    });
+    document.querySelectorAll('.delete-button').forEach(button => {
+      button.addEventListener('click', () => {
+        const articleId = button.dataset.id;
+        deleteArticle(articleId);
+      });
+    });
+  } catch (error) {
+    console.error('Error loading admin articles:', error.message);
+    displayErrorMessage('#article-list', 'Failed to load articles. Please try again.');
+  }
+}
+
+async function searchAdminArticles() {
+  const searchInput = document.getElementById('article-search-input').value.trim();
+  const articleList = document.getElementById('article-list');
+  if (!db || !articleList) {
+    displayErrorMessage('#article-list', 'Database or article list not initialized. Please refresh the page.');
+    return;
+  }
+
+  articleList.innerHTML = '<p>Loading articles...</p>';
+
+  try {
+    let snapshot;
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    
+    if (!searchInput) {
+      const q = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(50));
+      snapshot = await withRetry(() => getDocs(q));
+    } else if (datePattern.test(searchInput)) {
+      const startDate = new Date(searchInput + 'T00:00:00Z');
+      if (isNaN(startDate.getTime())) {
+        articleList.innerHTML = '';
+        displayErrorMessage('#article-list', 'Invalid date format. Please use YYYY-MM-DD (e.g., 2025-09-18).');
+        return;
+      }
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 1);
+      const q = query(
+        collection(db, 'articles'),
+        where('createdAt', '>=', startDate),
+        where('createdAt', '<', endDate),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+      snapshot = await withRetry(() => getDocs(q));
+    } else {
+      const titleQuery = query(
+        collection(db, 'articles'),
+        where('title_lowercase', '>=', searchInput.toLowerCase()),
+        where('title_lowercase', '<=', searchInput.toLowerCase() + '\uf8ff'),
+        orderBy('title_lowercase'),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+      const writerQuery = query(
+        collection(db, 'articles'),
+        where('writer', '>=', searchInput),
+        where('writer', '<=', searchInput + '\uf8ff'),
+        orderBy('writer'),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+      
+      const [titleSnapshot, writerSnapshot] = await Promise.all([
+        withRetry(() => getDocs(titleQuery)),
+        withRetry(() => getDocs(writerQuery))
+      ]);
+      
+      const articles = new Map();
+      titleSnapshot.forEach(doc => articles.set(doc.id, doc));
+      writerSnapshot.forEach(doc => articles.set(doc.id, doc));
+      snapshot = {
+        docs: Array.from(articles.values()),
+        empty: articles.size === 0
+      };
+    }
+
+    articleList.innerHTML = '';
+    if (snapshot.empty) {
+      articleList.innerHTML = '<p>No articles found for the given search.</p>';
+      return;
+    }
+
+    snapshot.docs.forEach(doc => {
+      const article = doc.data();
+      const articleElement = document.createElement('div');
+      articleElement.classList.add('news-card');
+      articleElement.innerHTML = `
+        <h3>${article.title || 'Untitled Article'}</h3>
+        <p class="article-writer">By ${article.writer || 'Anonymous'}</p>
+        <p>${article.summary || 'No summary available'}</p>
+        <p>${article.category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' & ')}</p>
+        <p class="article-time">Posted: ${formatTimestamp(article.createdAt)}</p>
+        ${article.breakingNews ? '<span class="breaking-news-badge">Breaking News</span>' : ''}
+        ${article.verified ? '<span class="verified-badge">Verified</span>' : ''}
+        <button class="edit-button ripple-btn" data-id="${doc.id}">Edit</button>
+        <button class="delete-button ripple-btn" data-id="${doc.id}">Delete</button>
+      `;
+      articleList.appendChild(articleElement);
+    });
+
+    document.querySelectorAll('.edit-button').forEach(button => {
+      button.addEventListener('click', async () => {
+        const articleId = button.dataset.id;
+        const docRef = doc(db, 'articles', articleId);
+        try {
+          const docSnap = await withRetry(() => getDoc(docRef));
+          const article = docSnap.data();
+          document.getElementById('article-id').value = articleId;
+          document.getElementById('article-title-input').value = article.title || '';
+          document.getElementById('article-writer-input').value = article.writer || '';
+          document.getElementById('article-summary-input').value = article.summary || '';
+          if (quill) {
+            quill.root.innerHTML = article.content || '';
+          } else {
+            document.getElementById('article-content-input').value = article.content || '';
+          }
+          document.getElementById('article-image-input').value = article.image || '';
+          document.getElementById('article-video-input').value = article.video || '';
+          document.getElementById('article-category-input').value = article.category || '';
+          document.getElementById('article-breaking-news-input').checked = !!article.breakingNews;
+          document.getElementById('article-verified-input').checked = !!article.verified;
+        } catch (error) {
+          console.error('Error loading article for editing:', error.message);
+          displayErrorMessage('#article-list', 'Failed to load article for editing. Please try again.');
+        }
+      });
+    });
+    document.querySelectorAll('.delete-button').forEach(button => {
+      button.addEventListener('click', () => {
+        const articleId = button.dataset.id;
+        deleteArticle(articleId);
+      });
+    });
+  } catch (error) {
+    console.error('Error searching admin articles:', error.message, error.code);
+    let errorMessage = 'Failed to load articles: ' + error.message + '. ';
+    if (error.code === 'permission-denied') {
+      errorMessage += 'Check Firestore security rules to ensure admin read access to the "articles" collection.';
+    } else if (error.code === 'unavailable' || error.code === 'deadline-exceeded') {
+      errorMessage += 'Network issue detected. Check your internet connection and try again.';
+    } else if (error.code === 'invalid-argument') {
+      errorMessage += 'Invalid search query. Ensure the date is in YYYY-MM-DD format or check the title/writer input.';
+    } else {
+      errorMessage += 'Please verify the search query or try refreshing the page.';
+    }
+    articleList.innerHTML = '';
+    displayErrorMessage('#article-list', errorMessage);
+  }
+}
+
 document.querySelectorAll('.share-button').forEach(button => {
   button.addEventListener('click', () => {
     const platform = button.dataset.platform;
@@ -1932,6 +1924,7 @@ if (scrollToTopWrapper && scrollToTopButton) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+
   initializeFirebase().then(() => {
     if (document.getElementById('admin-login-section')) {
       onAuthStateChanged(auth, (user) => {
